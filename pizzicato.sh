@@ -400,3 +400,9 @@ dpkg-reconfigure mopidy
 python3 -m pip install Mopidy-Muse
 python3 -m pip install Mopidy-MusicBox-Webclient
 python3 -m pip install Mopidy-WebSettings
+python3 -m pip install Mopidy-ALSAMixer
+#
+# Il faut éddite le ALSA sound file /etc/asound
+# Et le fichier mopidy.conf
+
+#
