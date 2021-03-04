@@ -104,7 +104,7 @@ gpg --no-default-keyring \
 rm -rf $tmpkeydir
 
 echo "    Done." 1>&2
-echo
+echo 1>&2
 
 echo "  - Register the lesbonscomptes package repository..." 1>&2
 
@@ -112,11 +112,31 @@ curl https://www.lesbonscomptes.com/upmpdcli/pages/upmpdcli-rbuster.list \
     > /etc/apt/sources.list.d/upmpdcli-rbuster.list
     
 echo "    Done." 1>&2
-echo
+echo 1>&2
 
+echo "  - Register the lesbonscomptes package repository for MPD ..." 1>&2
+
+cat > /etc/apt/sources.list.d/mpd.list << EOF
+deb [signed-by=/usr/share/keyrings/lesbonscomptes.gpg] http://www.lesbonscomptes.com/upmpdcli/downloads/mpd-debian/ buster main
+deb-src [signed-by=/usr/share/keyrings/lesbonscomptes.gpg] http://www.lesbonscomptes.com/upmpdcli/downloads/mpd-debian/ buster main
+EOF
+    
+echo "    Done." 1>&2
+echo 1>&2
+
+curl https://apt.mopidy.com/mopidy.gpg \
+    | gpg --dearmor \
+    > /usr/share/keyrings/mopidy.gpg
+    
+cat > /etc/apt/sources.list.d/mopidy.list << EOF
+# Mopidy APT archive
+# Built on Debian 10 (buster), compatible with Ubuntu 19.10 and newer
+deb [signed-by=/usr/share/keyrings/mopidy.gpg] https://apt.mopidy.com/ buster main contrib non-free
+deb-src [signed-by=/usr/share/keyrings/mopidy.gpg] https://apt.mopidy.com/ buster main contrib non-free
 #
 # Update of the package repository
 #
+EOF
 
 echo "  - Update the package repository..." 1>&2
 
@@ -269,18 +289,20 @@ echo 1>&2
 echo "Done." 1>&2
 
 
-##
-## Création de l'utilisateur system qui exécutera les daemons 
-##
+#
+# Create the user that will run every deamon 
+#
 
-adduser --system  pizzicato
+adduser --system  \
+        --shell /bin/bash \
+        pizzicato
 addgroup pizzicato users
+
+# This group is required to play music
 addgroup pizzicato audio
-addgroup pizzicato tty
+
+# This group is requiired to run startx
 addgroup pizzicato video
-addgroup pizzicato dialout
-
-
 
 echo "  - Installing the minimum X11 ressources for running chromium..." 1>&2
 
@@ -339,3 +361,20 @@ ExecStart=
 ExecStart=-/sbin/agetty --autologin pizzicato --noclear %I \$TERM
 EOF
 
+#
+# Install the MPD - upmpdcli services
+#
+
+echo "  - Installing the the MPD - upmpdcli services..." 1>&2
+
+apt-get install --assume-yes \
+                --install-recommends \
+                mpd \
+                upmpdcli \
+                upmpdcli-qobuz \
+                upmpdcli-spotify\
+                sc2mpd\
+                scweb
+
+echo "    Done." 1>&2
+echo 1>&2
