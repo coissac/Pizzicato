@@ -2,6 +2,61 @@
 
 #####################
 #
+# Update the system with the latest version
+# of every packages
+#
+#####################
+
+echo "Updating the Raspberry PI OS system" 1>&2
+
+#
+# Add the repository for the latest version of
+# upmpdcli family software
+#
+# https://www.lesbonscomptes.com/upmpdcli/pages/downloads.html#debian
+#
+
+echo "  - Register the lesbonscomptes package repository..." 1>&2
+
+gpg --no-default-keyring \
+    --keyring /etc/apt/trusted.gpg.d/lesbonscomptes.gpg  \
+    --keyserver pool.sks-keyservers.net \
+    --recv-key F8E3347256922A8AE767605B7808CE96D38B9201
+    
+curl https://www.lesbonscomptes.com/upmpdcli/pages/upmpdcli-rbuster.list \
+    > /etc/apt/sources.list.d/upmpdcli-rbuster.list
+    
+echo "    Done." 1>&2
+echo
+
+#
+# Update of the package repository
+#
+
+echo "  - Update the package repository..." 1>&2
+
+apt-get update
+
+echo "    Done." 1>&2
+echo
+
+#
+# Upgrade of the packages
+#
+
+
+echo "  - Upgrade every packages..." 1>&2
+
+apt-get upgrade --assume-yes
+
+echo "    Done." 1>&2
+echo
+
+
+echo "Done." 1>&2
+
+#####################
+#
 # Configuration of the Touch screen HDMI 5'' Display.
 #
 # Configuration follows instructions from the provider
