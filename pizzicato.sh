@@ -273,7 +273,12 @@ echo "Done." 1>&2
 ##
 
 adduser --system  pizzicato
+addgroup pizzicato users
 addgroup pizzicato audio
+addgroup pizzicato tty
+addgroup pizzicato video
+addgroup pizzicato dialout
+
 
 
 echo "  - Installing the minimum X11 ressources for running chromium..." 1>&2
@@ -322,14 +327,14 @@ cat >> /home/pizzicato/.bash_profile << EOF
 # Added by the pizzicato.sh script
 #
 ###
-[[ -z $DISPLAY && $XDG_VTNR -eq 1 ]] && startx -- -nocursor
+[[ -z \$DISPLAY && \$XDG_VTNR -eq 1 ]] && startx -- -nocursor
 EOF
-chown pizzicato:audio /home/pizzicato/.bash_profile
 
-sed -i .ori.$(date '+%Y%m%d_%k%M') \
-    's/--autologin pi/--autologin pizzicato/' \
-    /etc/systemd/system/autologin@.service
-    
-systemctl daemon-reload
-systemctl enable autologin@.service
+chown pizzicato:users /home/pizzicato/.bash_profile
+
+cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf << EOF
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin pizzicato --noclear %I
+EOF
 
