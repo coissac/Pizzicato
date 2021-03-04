@@ -16,6 +16,7 @@ ACTIVER_SSH_SERVEUR=1        # Si 1 le serveur ssh d'acces distant est activé
 ACTIVATE_WIFI=1              # Activate the wifi on the next reboot
 COUNTRY=FR                   # The country code to use for setting up the correct frequency
                              # for the 5MHz WIFI interface
+SOUND_CARD=allo-digione
 
 #####################
 #
@@ -240,6 +241,11 @@ if [ ! -z "${ACTIVATE_WIFI}" ] ; then
    echo 1>&2
 fi
 
+if [ ! -z "${SOUND_CARD}" ] ; then
+   edit_boot_config dtoverlay "${SOUND_CARD}"
+   echo "    Done." 1>&2
+   echo 1>&2
+fi
 echo "Done." 1>&2
 
 #####################
@@ -295,7 +301,7 @@ echo "Done." 1>&2
 
 adduser --system  \
         --shell /bin/bash \
-        pizzicato
+        mopidy
 addgroup pizzicato users
 
 # This group is required to play music
@@ -337,7 +343,7 @@ setxkbmap -option terminate:ctrl_alt_bksp
 # Start Chromium in kiosk mode
 sed -i 's/"exited_cleanly":false/"exited_cleanly":true/' /home/pi/.config/chromium/'Local State'
 sed -i 's/"exited_cleanly":false/"exited_cleanly":true/; s/"exit_type":"[^"]\+"/"exit_type":"Normal"/' /home/pi/.config/chromium/Default/Preferences
-chromium-browser --disable-infobars --kiosk 'http://your-url-here'
+chromium-browser --disable-infobars --kiosk 'http://127.0.0.1:6680'
 EOF
 
 if [[ -f /home/pizzicato/.bash_profile ]]
@@ -376,5 +382,21 @@ apt-get install --assume-yes \
                 sc2mpd\
                 scweb
 
+sudo systemctl disable upmpdcli
+systemctl disable mpd
+
 echo "    Done." 1>&2
 echo 1>&2
+
+
+apt-get install --assume-yes \
+                --install-recommends \
+                mopidy \
+                mopidy-mpd \
+                python3-pip
+                
+dpkg-reconfigure mopidy
+
+python3 -m pip install Mopidy-Muse
+python3 -m pip install Mopidy-MusicBox-Webclient
+python3 -m pip install Mopidy-WebSettings
