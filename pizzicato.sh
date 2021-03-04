@@ -38,6 +38,7 @@ function change_hostname() {
     > "$tmp"
     
   mv "$tmp" /etc/hosts
+  chmod +r /etc/hosts
 }
 
 function edit_config_file() {
@@ -335,6 +336,6 @@ chown pizzicato:users /home/pizzicato/.bash_profile
 cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf << EOF
 [Service]
 ExecStart=
-ExecStart=-/sbin/agetty --autologin pizzicato --noclear %I
+ExecStart=-/sbin/agetty --autologin pizzicato --noclear %I \$TERM
 EOF
 
