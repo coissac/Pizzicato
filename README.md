@@ -43,6 +43,12 @@ remember that after a fresh install of `Raspberry Pi OS` :
 - the defaut user name is `pi`
 - the default password is `raspberry`
 
+As soon as you are connected to the Pi think to change the password of the pi user
+
+```bash
+passwd
+```
+
 
 
 
