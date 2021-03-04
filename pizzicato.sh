@@ -13,6 +13,9 @@
 
 HOSTNAME=pizzicato           # Nom de la machine sur le réseau local
 ACTIVER_SSH_SERVEUR=1        # Si 1 le serveur ssh d'acces distant est activé
+ACTIVATE_WIFI=1              # Activate the wifi on the next reboot
+COUNTRY=FR                   # The country code to use for setting up the correct frequency
+                             # for the 5MHz WIFI interface
 
 #####################
 #
@@ -37,45 +40,39 @@ function change_hostname() {
   mv "$tmp" /etc/hosts
 }
 
-function edit_config() {
-  local parametre=$1
+function edit_config_file() {
+  local filename=$1
+  local parametre=$2
+  shift
   shift
   local value=$*
   local tmp=$(mktemp)
 
   awk -v date="$(date '+%d/%m/%Y at %k:%M')" \
           '/^ *'${parametre}' *=.*$/ {print; \
-                                      print "# commented out by Jukebox.sh on",date; \
+                                      print "# commented out by Pizzicato.sh on",date; \
                                       printf("# ")} \
-           {print $0}' /boot/config.txt \
+           {print $0}' $filename \
     | awk -v date="$(date '+%d/%m/%Y at %k:%M')" \
           -v param="${parametre}" \
           -v value="${value}" \
           '{print $0} \
            END {print "#"; \
-                print "# Edited on",date,"by Jukebox.sh"; \
+                print "# Edited on",date,"by Pizzicato.sh"; \
                 print "#"; \
                 print param"="value; \
                 print }' > "${tmp}"
                 
-  mv "${tmp}" /boot/config.txt
-  chown root:root /boot/config.txt
+  mv "${tmp}" $filename
+  chown root:root $filename
 }
 
+function edit_boot_config() {
+  edit_config_file /boot/config.txt $*
+}
 
-function download_url() {
-  local url="$1"
-  local tmp=$(mktemp)
-  
-  local filename=$(basename "$url")
-  
-  if [[ "$filename" == "download" ]] ; then
-    filename=$(basename $(dirname $SQUEEZE_URL) )
-  fi
-  
-  wget -O "${filename}" "$url" 
-  
-  echo ${filename}
+function edit_wpa_supplicant_config() {
+  edit_config_file /etc/wpa_supplicant/wpa_supplicant.conf $*
 }
 
 
@@ -149,12 +146,22 @@ echo "Done." 1>&2
 #####################
 
 #
+# Save the originals config files
+#
+
+cp /boot/config.txt /boot/config.txt.ori.$(date '+%Y%m%d_%k%M')
+cp /etc/wpa_supplicant/wpa_supplicant.conf \
+   /etc/wpa_supplicant/wpa_supplicant.conf.ori.$(date '+%Y%m%d_%k%M')
+
+
+#
 # Change the hostname
 #
 
 echo "  - changing the host name from $(hostname) to ${HOSTNAME}..." 1>&2
 change_hostname "${HOSTNAME}"
 echo "    Done." 1>&2
+echo 1>&2
 
 #
 # Activate the SSH server
@@ -164,7 +171,53 @@ if (( ACTIVER_SSH_SERVEUR == 1 )) ; then
   echo "  - Activating the ssh server..." 1>&2
   systemctl enable ssh
   echo "    Done." 1>&2
+  echo 1>&2
 fi  
+
+#
+# Edit GPU memory setting
+#
+
+
+if [ ! -z "${GPU_MEMORY}" ] ; then
+   echo "  - Change GPU memory to ${GPU_MEMORY}..." 1>&2
+   edit_boot_config gpu_mem "${GPU_MEMORY}"
+   echo "    Done." 1>&2
+   echo 1>&2
+fi
+   
+#
+# Add hardware video decoding licence
+#
+
+if [ ! -z "${DECODE_MPG2}" ] ; then
+   echo "  - Install MPG2 hardware decoding licence..." 1>&2
+   edit_boot_config decode_MPG2 "${DECODE_MPG2}"
+   echo "    Done." 1>&2
+   echo 1>&2
+fi
+
+if [ ! -z "${DECODE_WVC1}" ] ; then
+   echo "  - Install WVC1 hardware decoding licence..." 1>&2
+   edit_boot_config decode_WVC1 "${DECODE_WVC1}"
+   echo "    Done." 1>&2
+   echo 1>&2
+fi  
+
+
+if [ ! -z "${ACTIVATE_WIFI}" ] ; then
+   echo "  - Declare the country for the WIFI interface..." 1>&2
+   edit_wpa_supplicant_config ctrl_interface "DIR=/var/run/wpa_supplicant GROUP=netdev"
+   edit_wpa_supplicant_config update_config "1"
+   edit_wpa_supplicant_config country "$COUNTRY"
+   echo "    Done." 1>&2
+   echo 1>&2
+   
+   echo "  - Unlock the WIFI interface..." 1>&2
+   rfkill unblock $(rfkill list | awk -F ':' '/Wireless LAN/ {print $1}')
+   echo "    Done." 1>&2
+   echo 1>&2
+fi
 
 echo "Done." 1>&2
 
@@ -186,44 +239,23 @@ echo "Configuring the HDMI 5'' Display" 1>&2
 
 echo "  - Editing the /boot/config.txt file..." 1>&2
 
-cp /boot/config.txt /boot/config.txt.ori.$(date '+%Y%m%d_%k%M')
-
-if [ ! -z "${GPU_MEMORY}" ] ; then
-   edit_config gpu_mem "${GPU_MEMORY}"
-fi
-   
-if [ ! -z "${DECODE_MPG2}" ] ; then
-   edit_config decode_MPG2 "${GPU_MEMORY}"
-fi
-
-if [ ! -z "${DECODE_WVC1}" ] ; then
-   edit_config decode_WVC1 "${GPU_MEMORY}"
-fi  
-
-cp /boot/config.txt /boot/config.txt.pizzicato_orig
-(grep -E -v 'hdmi_(group|mode|cvt)' /boot/config.txt.pizzicato_orig \
- | grep -E -v 'max_usb_current' \
- | grep -E -v '^##@'; \
- cat << EOF
-##@
-##@ Pizzicato setup
-##@
-max_usb_current=1
-hdmi_group=2
-hdmi_mode=87
-hdmi_cvt=800 480 60 6 0 0 0
-EOF
-) > /boot/config.txt
+edit_boot_config max_usb_current 1
+edit_boot_config hdmi_group 2
+edit_boot_config hdmi_mode 87
+edit_boot_config hdmi_cvt 800 480 60 6 0 0 0
 
 echo "    Done." 1>&2
-echo
+echo 1>&2
 
 #
 # Setup the touchscreen
 #
 
 echo "  - Installing the libinput library for the touch screen..." 1>&2
-apt-get install xserver-xorg-input-libinput
+apt-get install \
+        --assume-yes \
+        --install-suggests \
+        xserver-xorg-input-libinput
 echo "    Done." 1>&2
 echo
 
@@ -231,6 +263,25 @@ echo "  - Installing the config file for the touch screen..." 1>&2
 mkdir -p /etc/X11/xorg.conf.d
 cp /usr/share/X11/xorg.conf.d/40-libinput.conf /etc/X11/xorg.conf.d/
 echo "    Done." 1>&2
-echo
+echo 1>&2
 
 echo "Done." 1>&2
+
+echo "  - Installing the minimum X11 ressources for running chromium..." 1>&2
+
+apt-get install \
+        --assume-yes \
+        --no-install-recommends \
+        xserver-xorg x11-xserver-utils xinit openbox
+echo "    Done." 1>&2
+echo 1>&2
+        
+echo "  - Installing chromium..." 1>&2
+
+sudo apt-get install  \
+        --assume-yes \
+        --no-install-recommends \
+        chromium-browser
+        
+echo "    Done." 1>&2
+echo 1>&2
