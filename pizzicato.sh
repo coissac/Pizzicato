@@ -267,6 +267,15 @@ echo 1>&2
 
 echo "Done." 1>&2
 
+
+##
+## Création de l'utilisateur system qui exécutera les daemons 
+##
+
+adduser --system  pizzicato
+addgroup pizzicato audio
+
+
 echo "  - Installing the minimum X11 ressources for running chromium..." 1>&2
 
 apt-get install \
@@ -285,3 +294,42 @@ sudo apt-get install  \
         
 echo "    Done." 1>&2
 echo 1>&2
+
+cp /etc/xdg/openbox/autostart /etc/xdg/openbox/autostart.ori.$(date '+%Y%m%d_%k%M')
+
+cat > /etc/xdg/openbox/autostart << EOF
+# Disable any form of screen saver / screen blanking / power management
+xset s off
+xset s noblank
+xset -dpms
+
+# Allow quitting the X server with CTRL-ATL-Backspace
+setxkbmap -option terminate:ctrl_alt_bksp
+
+# Start Chromium in kiosk mode
+sed -i 's/"exited_cleanly":false/"exited_cleanly":true/' /home/pi/.config/chromium/'Local State'
+sed -i 's/"exited_cleanly":false/"exited_cleanly":true/; s/"exit_type":"[^"]\+"/"exit_type":"Normal"/' /home/pi/.config/chromium/Default/Preferences
+chromium-browser --disable-infobars --kiosk 'http://your-url-here'
+EOF
+
+if [[ -f /home/pizzicato/.bash_profile ]]
+  cp /home/pizzicato/.bash_profile /home/pizzicato/.bash_profile.ori.$(date '+%Y%m%d_%k%M')
+fi
+
+cat >> /home/pizzicato/.bash_profile << EOF
+###
+#
+# Added by the pizzicato.sh script
+#
+###
+[[ -z $DISPLAY && $XDG_VTNR -eq 1 ]] && startx -- -nocursor
+EOF
+chown pizzicato:audio /home/pizzicato/.bash_profile
+
+sed -i .ori.$(date '+%Y%m%d_%k%M') \
+    's/--autologin pi/--autologin pizzicato/' \
+    /etc/systemd/system/autologin@.service
+    
+systemctl daemon-reload
+systemctl enable autologin@.service
+
