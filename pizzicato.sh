@@ -403,6 +403,22 @@ python3 -m pip install Mopidy-WebSettings
 python3 -m pip install Mopidy-ALSAMixer
 #
 # Il faut éddite le ALSA sound file /etc/asound
+# pcm.allo_digione {
+#         type hw
+#         card sndallodigione
+# }
+#
 # Et le fichier mopidy.conf
+# [audio]
+# mixer = alsamixer
+# mixer_volume = 99
+# output = alsasink device=allo_digione
+# buffer_time =
+# [http]
+# enabled = true
+# hostname = 0.0.0.0
+# [mpd]
+# enabled = true
+# hostname = 0.0.0.0
 
 #
