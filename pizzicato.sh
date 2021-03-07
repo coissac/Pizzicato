@@ -438,11 +438,24 @@ apt-get install --assume-yes \
 # ln -s /run/user/$(id -u)/gvfs/cdda:host=sr0 cdaudio
 
 # https://mathieu-requillart.medium.com/my-ultimate-guide-to-the-raspberry-pi-audio-server-i-wanted-audio-cd-f985e8bd832c
-
-https://www.rezine.org/ressources/guides/auto-hebergement/multimedia/mpd/
-
-
-mkdir /var/lib/minidlna/.gvfs
-chmown minidlna /var/lib/minidlna/.gvfs
 apt install mpd-sima
 
+#https://www.rezine.org/ressources/guides/auto-hebergement/multimedia/mpd/
+
+apt-get install cd-discid
+adduser minidlna cdrom
+mkdir /var/lib/minidlna/.gvfs
+chown minidlna /var/lib/minidlna/.gvfs
+
+sudo -u minidlna dbus-run-session -- bash
+gio mount cdda://sr0
+
+apt install setcd
+apt install libjpeg62-turbo-dev
+python3 -m pip install sacad
+
+  setcd -i # returns the status of the CDROM
+cddb-tool query "http://gnudb.gnudb.org/~cddb/cddb.cgi" 6 eric $(hostname) $(cd-discid)
+cddb-tool read "http://gnudb.gnudb.org/~cddb/cddb.cgi" 6 eric $(hostname) $(cddb-tool query "http://gnudb.gnudb.org/~cddb/cddb.cgi" 6 eric pizzicato $(cd-discid) | awk '{print $2,$3}')sacad Sting "...Nothing Like The Sun" 500 cover.jpg
+
+# https://github.com/desbma/sacad
