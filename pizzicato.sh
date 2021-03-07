@@ -421,4 +421,28 @@ python3 -m pip install Mopidy-ALSAMixer
 # enabled = true
 # hostname = 0.0.0.0
 
-#
+# https://unix.stackexchange.com/questions/276153/mount-ftp-using-gvfs-at-the-command-line
+apt-get install --assume-yes \
+                --install-recommends \
+                gvfs\
+                gvfs-fuse\
+                gvfs-bin\
+                gvfs-backends
+                
+       
+
+# mkdir $HOME/.gvfs
+# dbus-launch --sh-syntax > "$HOME/.dbus_settings"
+# source "$HOME/.dbus_settings"
+# gio mount -u cdda://sr0/
+# ln -s /run/user/$(id -u)/gvfs/cdda:host=sr0 cdaudio
+
+# https://mathieu-requillart.medium.com/my-ultimate-guide-to-the-raspberry-pi-audio-server-i-wanted-audio-cd-f985e8bd832c
+
+https://www.rezine.org/ressources/guides/auto-hebergement/multimedia/mpd/
+
+
+mkdir /var/lib/minidlna/.gvfs
+chmown minidlna /var/lib/minidlna/.gvfs
+apt install mpd-sima
+
